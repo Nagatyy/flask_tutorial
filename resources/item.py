@@ -1,5 +1,5 @@
 from flask_restful import Resource, reqparse
-from flask_jwt import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt
 from models.items import ItemModel
 
 
@@ -25,7 +25,6 @@ class Item(Resource):
             return item.json()
         return {'message': 'Item not found'}, 404
 
-    
 
     def post(self, name):
         if ItemModel.find_by_name(name):
@@ -45,6 +44,14 @@ class Item(Resource):
 
     @jwt_required()
     def delete(self, name):
+
+        # automatically extracts any claims that came in with the jwt
+        claims = get_jwt()
+        # we want only admins to be able to delete items so:
+        if not claims['is_admin']:
+            return {'message': 'Admin privelage required'}, 404
+
+
         item = ItemModel.find_by_name(name)
         if item:
             item.delete_from_db()
@@ -68,6 +75,6 @@ class Item(Resource):
 class ItemList(Resource):
 
     def get(self):
-        return {'items': [item.json() for item in ItemModel.query.all()]}
+        return {'items': [item.json() for item in ItemModel.find_all()]}
 
         
